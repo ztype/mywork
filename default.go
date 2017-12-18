@@ -1,1 +1,1 @@
-package mywork
+package main
