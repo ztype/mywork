@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"html/template"
+	"io/ioutil"
 	"net/http"
 	"path/filepath"
 )
@@ -23,6 +24,15 @@ func defaultHandle(w http.ResponseWriter, r *http.Request) {
 	//fmt.Fprintln(w, "hello world")
 }
 
+func faviconHandle(w http.ResponseWriter, r *http.Request) {
+	bs, err := ioutil.ReadFile("./favicon.ico")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	w.Write(bs)
+}
+
 func errHandle(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "server internal error!")
 }
@@ -30,6 +40,7 @@ func errHandle(w http.ResponseWriter, r *http.Request) {
 func main() {
 	fmt.Println("application started.")
 	http.HandleFunc("/", defaultHandle)
+	http.HandleFunc("/favicon.ico", faviconHandle)
 	err := http.ListenAndServe(":80", nil)
 	if err != nil {
 		fmt.Println(err)
