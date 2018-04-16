@@ -1,2 +1,2 @@
 # mywork
-go web prictice
+go web practice

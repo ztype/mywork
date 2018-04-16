@@ -1,3 +1,18 @@
 {{define "body"}}
-<h1 name="title" align="center">this is my first prictice web program</h1>
+<a name="title" align="center">this is my first prictice web program</a>
+<ul>
+    {{range $key,$value := .}}
+     <li>
+         <b>key</b>{{$key}},
+         {{with $value}}
+            {{if .IsDir}}
+                <b>name</b>:{{.Name}},<b>type</b>:{{.IsDir}},<b>size</b>:{{.Size}}
+            {{else}}
+                <b>name</b>:{{.Name}},<b>size</b>:{{.Size}}
+            {{end}}
+         {{end}}
+     </li>   
+    {{end}}
+</ul>
+<a href="www.baidu.com">go to baidu~</a>
 {{end}}

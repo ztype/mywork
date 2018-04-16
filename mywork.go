@@ -5,6 +5,7 @@ import (
 	"html/template"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"path/filepath"
 )
 
@@ -17,24 +18,34 @@ func defaultHandle(w http.ResponseWriter, r *http.Request) {
 		filepath.Join(resource, "body.html"),
 		filepath.Join(resource, "index.html"))
 	if err != nil {
-		errHandle(w, r)
+		errHandle(w, r, err)
 		return
 	}
-	tpl.ExecuteTemplate(w, "index.html", nil)
+	infos := []os.FileInfo{}
+	walkfunc := func(path string, info os.FileInfo, err error) error {
+		if err != nil || info == nil {
+			return err
+		}
+		infos = append(infos, info)
+		return nil
+	}
+	filepath.Walk("./", walkfunc)
+	tpl.ExecuteTemplate(w, "index.html", infos)
 	//fmt.Fprintln(w, "hello world")
 }
 
 func faviconHandle(w http.ResponseWriter, r *http.Request) {
-	bs, err := ioutil.ReadFile("./favicon.ico")
+	bs, err := ioutil.ReadFile("." + "/favicon.ico")
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 	w.Write(bs)
+	return
 }
 
-func errHandle(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "server internal error!")
+func errHandle(w http.ResponseWriter, r *http.Request, err error) {
+	fmt.Fprintf(w, "server internal error!"+fmt.Sprintf("%v", err))
 }
 
 func main() {
