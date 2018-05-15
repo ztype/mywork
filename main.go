@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 const (
@@ -26,6 +27,9 @@ func defaultHandle(w http.ResponseWriter, r *http.Request) {
 		if err != nil || info == nil {
 			return err
 		}
+		if strings.Contains(path, ".git") {
+			return nil
+		}
 		infos = append(infos, info)
 		return nil
 	}
@@ -35,6 +39,8 @@ func defaultHandle(w http.ResponseWriter, r *http.Request) {
 }
 
 func faviconHandle(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, filepath.Join(".", "favicon.ico"))
+	return
 	bs, err := ioutil.ReadFile("." + "/favicon.ico")
 	if err != nil {
 		fmt.Println(err)
@@ -51,6 +57,7 @@ func errHandle(w http.ResponseWriter, r *http.Request, err error) {
 func main() {
 	fmt.Println("application started.")
 	http.HandleFunc("/", defaultHandle)
+
 	http.HandleFunc("/favicon.ico", faviconHandle)
 	err := http.ListenAndServe(":80", nil)
 	if err != nil {
