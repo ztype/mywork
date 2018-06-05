@@ -39,8 +39,6 @@ func defaultHandle(w http.ResponseWriter, r *http.Request) {
 }
 
 func faviconHandle(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, filepath.Join(".", "favicon.ico"))
-	return
 	bs, err := ioutil.ReadFile("." + "/favicon.ico")
 	if err != nil {
 		fmt.Println(err)
@@ -50,6 +48,11 @@ func faviconHandle(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
+func gameHandle(w http.ResponseWriter, r *http.Request) {
+	p := `F:\work\src\github.com\deck-of-cards\example\index.html`
+	http.ServeFile(w, r, p)
+}
+
 func errHandle(w http.ResponseWriter, r *http.Request, err error) {
 	fmt.Fprintf(w, "server internal error!"+fmt.Sprintf("%v", err))
 }
@@ -57,10 +60,11 @@ func errHandle(w http.ResponseWriter, r *http.Request, err error) {
 func main() {
 	fmt.Println("application started.")
 	http.HandleFunc("/", defaultHandle)
-
+	http.HandleFunc("/game", gameHandle)
 	http.HandleFunc("/favicon.ico", faviconHandle)
-	err := http.ListenAndServe(":80", nil)
+	err := http.ListenAndServe(":8080", nil)
 	if err != nil {
 		fmt.Println(err)
 	}
 }
+
