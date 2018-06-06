@@ -2,8 +2,10 @@ package main
 
 import (
 	"fmt"
+	"golang.org/x/net/websocket"
 	"html/template"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -15,6 +17,7 @@ const (
 )
 
 func defaultHandle(w http.ResponseWriter, r *http.Request) {
+	log.Println("request from:", r.RemoteAddr,r.URL.String())
 	tpl, err := template.ParseFiles(filepath.Join(resource, "head.html"),
 		filepath.Join(resource, "body.html"),
 		filepath.Join(resource, "index.html"))
@@ -34,7 +37,9 @@ func defaultHandle(w http.ResponseWriter, r *http.Request) {
 		return nil
 	}
 	filepath.Walk("./", walkfunc)
+	w.Header().Add("Pragma","no-cache")
 	tpl.ExecuteTemplate(w, "index.html", infos)
+
 	//fmt.Fprintln(w, "hello world")
 }
 
@@ -53,12 +58,38 @@ func gameHandle(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, p)
 }
 
+func websocketHandle(ws *websocket.Conn) {
+	client := ws.Request().RemoteAddr
+	log.Println("Client connected:", client)
+	go serveWs(ws)
+}
+
+func serveWs(ws *websocket.Conn) {
+	i := 0
+	for {
+		var msg string
+		err := websocket.Message.Receive(ws,&msg)
+		if err != nil {
+			log.Println(ws.Request().RemoteAddr,err)
+			break
+		}
+		log.Println("from:",ws.Request().RemoteAddr,":",msg)
+		err = websocket.Message.Send(ws,fmt.Sprintf("redten %d",i))
+		if err != nil {
+			log.Println(ws.Request().RemoteAddr,err)
+			break
+		}
+	}
+	ws.Close()
+}
+
 func errHandle(w http.ResponseWriter, r *http.Request, err error) {
 	fmt.Fprintf(w, "server internal error!"+fmt.Sprintf("%v", err))
 }
 
 func main() {
 	fmt.Println("application started.")
+	go listenWebsocket()
 	http.HandleFunc("/", defaultHandle)
 	http.HandleFunc("/game", gameHandle)
 	http.HandleFunc("/favicon.ico", faviconHandle)
@@ -68,3 +99,10 @@ func main() {
 	}
 }
 
+func listenWebsocket(){
+	http.Handle("/ws", websocket.Handler(websocketHandle))
+	err := http.ListenAndServe(":8081", nil)
+	if err != nil {
+		fmt.Println(err)
+	}
+}

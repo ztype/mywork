@@ -1,3 +1,31 @@
 {{define "head"}}
 <title>go web prictice</title>
+<script type="text/javascript">
+var reconnect = !0;
+var times = 0;
+
+var ws = new WebSocket("ws://www.sthdif.com:8081/ws");
+
+ws.open = function(evt){
+    console.log("ws open");
+    ws.send("hello from websocket");
+};
+
+ws.onmessage = function(evt){
+    console.log("ws receive:" + evt.data);
+    ws.send("ws = " + times.toString());
+};
+
+ws.onclose = function(evt){
+    console.log("ws closed:" + evt.data);
+    if (reconnect){
+        ws = new WebSocket("ws://www.sthdif.com:8081/ws");
+    }
+};
+
+ws.onerror = function(evt){
+    console.log("ws error:" + evt.data)
+    ws.close();
+};
+</script>
 {{end}}
