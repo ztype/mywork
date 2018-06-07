@@ -61,12 +61,13 @@ func gameHandle(w http.ResponseWriter, r *http.Request) {
 func websocketHandle(ws *websocket.Conn) {
 	client := ws.Request().RemoteAddr
 	log.Println("Client connected:", client)
-	go serveWs(ws)
+	serveWs(ws)
 }
 
 func serveWs(ws *websocket.Conn) {
 	i := 0
 	for {
+		i++
 		var msg string
 		err := websocket.Message.Receive(ws,&msg)
 		if err != nil {
@@ -80,7 +81,6 @@ func serveWs(ws *websocket.Conn) {
 			break
 		}
 	}
-	ws.Close()
 }
 
 func errHandle(w http.ResponseWriter, r *http.Request, err error) {

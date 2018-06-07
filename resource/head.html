@@ -3,23 +3,25 @@
 <script type="text/javascript">
 var reconnect = !0;
 var times = 0;
+var wsurl = "ws://www.sthdif.com:8081/ws"
+var ws = new WebSocket(wsurl);
+console.log("ws newed");
 
-var ws = new WebSocket("ws://www.sthdif.com:8081/ws");
-
-ws.open = function(evt){
-    console.log("ws open");
-    ws.send("hello from websocket");
+ws.onopen = function(evt) { 
+  console.log("ws open"); 
+  ws.send("Hello WebSockets!");
 };
 
 ws.onmessage = function(evt){
     console.log("ws receive:" + evt.data);
+    times++;
     ws.send("ws = " + times.toString());
 };
 
 ws.onclose = function(evt){
     console.log("ws closed:" + evt.data);
     if (reconnect){
-        ws = new WebSocket("ws://www.sthdif.com:8081/ws");
+        ws = new WebSocket(wsurl);
     }
 };
 
