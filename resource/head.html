@@ -1,33 +1,53 @@
 {{define "head"}}
 <title>go web prictice</title>
 <script type="text/javascript">
-var reconnect = !0;
+var reconnect = true;
 var times = 0;
-var wsurl = "ws://www.sthdif.com:8081/ws"
-var ws = new WebSocket(wsurl);
-console.log("ws newed");
+var domain = window.location.host;
+var ds = domain.split(":");
+if (ds.length > 1){
+    domain = ds[0];
+}
+var wsurl = "ws://"+domain+":8081/ws"
+var ws;
 
-ws.onopen = function(evt) { 
+var connect=function(){
+   ws = new WebSocket(wsurl);
+   console.log("ws newed");
+   ws.onopen = wsonopen;
+   ws.onclose = wsonclose;
+   ws.onerror = wsonerror;
+   ws.onmessage=wsonmessage;
+}
+
+var wsonopen = function(evt) { 
   console.log("ws open"); 
   ws.send("Hello WebSockets!");
 };
 
-ws.onmessage = function(evt){
+var wsonmessage = function(evt){
     console.log("ws receive:" + evt.data);
     times++;
     ws.send("ws = " + times.toString());
-};
-
-ws.onclose = function(evt){
-    console.log("ws closed:" + evt.data);
-    if (reconnect){
-        ws = new WebSocket(wsurl);
+    if (times > 100){
+        times = 0;
+        ws.close();
     }
 };
 
-ws.onerror = function(evt){
+var wsonclose = function(evt){
+    console.log("ws closed:" + evt.data);
+    if (reconnect){
+        console.log("reconnect");
+        connect();
+    }
+};
+
+var wsonerror = function(evt){
     console.log("ws error:" + evt.data)
     ws.close();
 };
+
+connect();
 </script>
 {{end}}
