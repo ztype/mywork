@@ -2,13 +2,13 @@ package main
 
 import (
 	"fmt"
+	"github.com/segmentio/ksuid"
 	"golang.org/x/net/websocket"
 	"html/template"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"path/filepath"
-	"github.com/segmentio/ksuid"
 	"time"
 )
 
@@ -53,6 +53,11 @@ func defaultHandle(w http.ResponseWriter, r *http.Request) {
 			errHandle(w, r, err)
 			return
 		}
+	}
+
+	if !manager.IsExist(c.Value) {
+		c = newUser(r.Host)
+		http.SetCookie(w, c)
 	}
 	manager.UserConnect(c.Value)
 	w.Header().Add("Pragma", "no-cache")
