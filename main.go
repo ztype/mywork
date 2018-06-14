@@ -10,24 +10,25 @@ import (
 	"net/http"
 	"path/filepath"
 	"time"
+	"encoding/json"
 )
 
 const (
-	resource = "resource"
+	resource = "template"
 )
 
 const (
-	FieldId = "_id"
+	FieldId = "uid"
 )
 
 var manager = NewManager()
 
-func newUser(domain string) *http.Cookie {
+func newCookie(domain string) *http.Cookie {
 	id := ksuid.New().String()
 	cookie := new(http.Cookie)
 	cookie.Path = "/"
 	cookie.Domain = domain
-	cookie.HttpOnly = true
+	//cookie.HttpOnly = true
 	cookie.Expires = time.Now().Add(time.Hour * 2)
 	cookie.Value = id
 	cookie.Name = FieldId
@@ -44,10 +45,10 @@ func defaultHandle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	c, err := r.Cookie("_id")
+	c, err := r.Cookie(FieldId)
 	if err != nil {
 		if err == http.ErrNoCookie {
-			c = newUser(r.Host)
+			c = newCookie(r.Host)
 			http.SetCookie(w, c)
 		} else {
 			errHandle(w, r, err)
@@ -56,7 +57,7 @@ func defaultHandle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !manager.IsExist(c.Value) {
-		c = newUser(r.Host)
+		c = newCookie(r.Host)
 		http.SetCookie(w, c)
 	}
 	manager.UserConnect(c.Value)
@@ -81,22 +82,36 @@ func gameHandle(w http.ResponseWriter, r *http.Request) {
 }
 
 func websocketHandle(ws *websocket.Conn) {
-	client := ws.Request().RemoteAddr
-	log.Println("Client connected:", client)
 	serveWs(ws)
+}
+
+type message struct {
+	Id   string
+	Type string
+	Time int
+	Data string
+}
+
+func handleMessage(m *message) {
+	if user := manager.GetUser(m.Id); user != nil {
+		user.HeartBeat()
+	}
 }
 
 func serveWs(ws *websocket.Conn) {
 	i := 0
+	m := new(message)
 	for {
 		i++
-		var msg string
-		err := websocket.Message.Receive(ws, &msg)
+		var buf = make([]byte, 0)
+		err := websocket.Message.Receive(ws, &buf)
 		if err != nil {
 			log.Println(ws.Request().RemoteAddr, err)
 			break
 		}
-		log.Println("from:", ws.Request().RemoteAddr, ":", msg)
+		if err := json.Unmarshal(buf, m); err == nil {
+			handleMessage(m)
+		}
 		err = websocket.Message.Send(ws, fmt.Sprintf("redten %d", i))
 		if err != nil {
 			log.Println(ws.Request().RemoteAddr, err)
@@ -114,7 +129,8 @@ func main() {
 	go listenWebsocket()
 	http.HandleFunc("/", defaultHandle)
 	http.HandleFunc("/game", gameHandle)
-	http.HandleFunc("/favicon.ico", faviconHandle)
+	//http.HandleFunc("/favicon.ico", faviconHandle)
+	http.FileServer(http.Dir("./res"))
 	err := http.ListenAndServe(":8080", nil)
 	if err != nil {
 		fmt.Println(err)
