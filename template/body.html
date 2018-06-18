@@ -1,6 +1,26 @@
 {{define "body"}}
-<a name="title" align="center"></a>
-<div name="content" id="content1" ></div>
-<c>{{.}} user online now</c>
+<script type="text/javascript">
+    window.onload = function () {
+        let join = document.getElementById("join_room");
+        if (join) {
+            join.onclick = joinRoom;
+        }
+
+        let create = document.getElementById("create_room");
+        if (create) {
+            create.onclick = createRoom;
+        }
+    };
+</script>
+<div id="content1"></div>
+<div>{{.}} user online now</div>
+<a>Join a room:</a>
+<br>
+<input type="text" id="room_id">
+<button type="button" id="join_room">Join</button>
+<br>
+<a>Or,create a room</a>
+<button type="button" id="create_room">Create</button>
+<br>
 <a href="http://www.baidu.com">go to baidu~</a>
 {{end}}
