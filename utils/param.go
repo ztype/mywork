@@ -8,12 +8,12 @@ type Param struct {
 }
 
 type Message struct {
-	Name string
-	MsgId string
+	Name  string
+	Msgid string
 	Param
 }
 
-type Respond struct{
-	MsgId string
-	Data interface{}
+type Respond struct {
+	Msgid string
+	Data  interface{}
 }
