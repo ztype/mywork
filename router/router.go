@@ -38,7 +38,11 @@ func (r *Router) Regist(s Service) {
 
 func (r *Router) Handle(msg *utils.Message) (interface{}, error) {
 	if s, ok := r.services[msg.Name]; ok {
-		return s.Serve(msg.Param)
+		ret,err := s.Serve(msg.Param)
+		res := utils.Respond{}
+		res.MsgId = msg.MsgId
+		res.Data = ret
+		return res,err
 	}
 	return nil, fmt.Errorf("service [%s] not found", msg.Name)
 }

@@ -9,5 +9,11 @@ type Param struct {
 
 type Message struct {
 	Name string
+	MsgId string
 	Param
+}
+
+type Respond struct{
+	MsgId string
+	Data interface{}
 }

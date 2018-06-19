@@ -35,9 +35,9 @@ func (sm *SessionManager) Name() string {
 func (sm *SessionManager) Serve(p utils.Param) (interface{}, error) {
 	switch p.Type {
 	case heartbeat:
-		sm.UserConnect(p.Id)
+		return sm.UserConnect(p.Id)
 	case logout:
-		sm.UserDisConnect(p.Id)
+		return sm.UserDisConnect(p.Id)
 	}
 	return nil, nil
 }
@@ -59,28 +59,30 @@ func (sm *SessionManager) checkUser() {
 	}
 }
 
-func (sm *SessionManager) UserConnect(uuid string) {
+func (sm *SessionManager) UserConnect(uuid string) (interface{},error){
 	sm.lock.Lock()
 	defer sm.lock.Unlock()
 	u, ok := sm.users[uuid]
 	if ok {
 		u.HeartBeat()
-		return
+		return "ok",nil
 	}
 	user := new(User)
 	user.lastHeartBeat = time.Now()
 	user.id = uuid
 	sm.users[uuid] = user
 	log.Println(uuid, "connected")
+	return "ok",nil
 }
 
-func (sm *SessionManager) UserDisConnect(uuid string) {
+func (sm *SessionManager) UserDisConnect(uuid string) (interface{},error){
 	sm.lock.Lock()
 	defer sm.lock.Unlock()
 	if _, ok := sm.users[uuid]; ok {
 		delete(sm.users, uuid)
 		log.Println(uuid, "disconnected")
 	}
+	return "ok",nil
 }
 
 func (sm *SessionManager) GetUser(uuid string) *User {
