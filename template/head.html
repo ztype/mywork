@@ -1,6 +1,6 @@
 {{define "head"}}
 <title>goweb</title>
-<script type="text/javascript" name="connect">
+<script type="text/javascript">
     {
         /**
          * @returns {string} Random string with len 4
@@ -59,14 +59,13 @@
         };
 
         let wsonerror = function (evt) {
-            console.log("ws error:" + evt.data)
+            console.log("ws error:" + evt.data);
             ws.close();
         };
 
         var sendMsg = function (name, type, data) {
             let msg = {};
-            let gid = guid();
-            msg.msgid = gid;
+            msg.msgid = guid();
             msg.name = name;
             msg.type = type;
             msg.id = getCookie("uid");
@@ -107,7 +106,7 @@
     }
 
 </script>
-<script type="text/javascript" name="room_operation">
+<script type="text/javascript" id="room_operation">
     var joinRoom = function (e) {
         let roomid = document.getElementById("room_id");
         let id = roomid.value;
@@ -130,13 +129,13 @@
         if (content) {
             msgcount++;
             let a = document.createElement("a");
-            a.innerHTML = msgcount +":"+ msg;
+            a.textContent = msgcount +":"+ msg;
             content.appendChild(a);
             let br = document.createElement("br");
             content.appendChild(br);
             if (content.childElementCount/2 > 15) {
-                content.removeChild(content.firstChild)
-                content.removeChild(content.firstChild)
+                content.removeChild(content.firstChild);
+                content.removeChild(content.firstChild);
             }
         }
     }

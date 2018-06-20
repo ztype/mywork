@@ -42,6 +42,11 @@ func (sm *SessionManager) Serve(p utils.Param) (interface{}, error) {
 	return nil, nil
 }
 
+func (sm *SessionManager)ObserveChannel()chan<-utils.Param{
+	return nil
+}
+
+
 func (sm *SessionManager) check() {
 	for {
 		sm.checkUser()
