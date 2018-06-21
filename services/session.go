@@ -2,6 +2,7 @@ package services
 
 import (
 	"log"
+	"mywork/base"
 	"mywork/utils"
 	"sync"
 	"time"
@@ -12,18 +13,20 @@ const (
 	logout    = "logout"
 )
 
+var hbCheckTime = time.Duration(time.Second * 3)
+
 type SessionManager struct {
-	users map[string]*User
+	users map[string]*base.User
 	lock  sync.Mutex
 }
 
 type Session struct {
-	user *User
+	user *base.User
 }
 
 func NewManager() *SessionManager {
 	m := new(SessionManager)
-	m.users = make(map[string]*User, 0)
+	m.users = make(map[string]*base.User, 0)
 	go m.check()
 	return m
 }
@@ -42,15 +45,14 @@ func (sm *SessionManager) Serve(p utils.Param) (interface{}, error) {
 	return nil, nil
 }
 
-func (sm *SessionManager)ObserveChannel()chan<-utils.Param{
+func (sm *SessionManager) ObserveChannel() chan<- utils.Param {
 	return nil
 }
-
 
 func (sm *SessionManager) check() {
 	for {
 		sm.checkUser()
-		time.Sleep(hbGapOut)
+		time.Sleep(hbCheckTime)
 	}
 }
 
@@ -64,33 +66,32 @@ func (sm *SessionManager) checkUser() {
 	}
 }
 
-func (sm *SessionManager) UserConnect(uuid string) (interface{},error){
+func (sm *SessionManager) UserConnect(uuid string) (interface{}, error) {
 	sm.lock.Lock()
 	defer sm.lock.Unlock()
 	u, ok := sm.users[uuid]
 	if ok {
 		u.HeartBeat()
-		return "ok",nil
+		return "ok", nil
 	}
-	user := new(User)
-	user.lastHeartBeat = time.Now()
-	user.id = uuid
+	user := base.NewUser(uuid)
+	user.HeartBeat()
 	sm.users[uuid] = user
 	log.Println(uuid, "connected")
-	return "ok",nil
+	return "ok", nil
 }
 
-func (sm *SessionManager) UserDisConnect(uuid string) (interface{},error){
+func (sm *SessionManager) UserDisConnect(uuid string) (interface{}, error) {
 	sm.lock.Lock()
 	defer sm.lock.Unlock()
 	if _, ok := sm.users[uuid]; ok {
 		delete(sm.users, uuid)
 		log.Println(uuid, "disconnected")
 	}
-	return "ok",nil
+	return "ok", nil
 }
 
-func (sm *SessionManager) GetUser(uuid string) *User {
+func (sm *SessionManager) GetUser(uuid string) *base.User {
 	if u, ok := sm.users[uuid]; ok && u.IsOnline() {
 		return u
 	}

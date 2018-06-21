@@ -1,10 +1,10 @@
 package database
 
 import (
-	_ "github.com/mattn/go-sqlite3"
-	"testing"
 	"database/sql"
-	"log"
+	"testing"
+
+	_ "github.com/mattn/go-sqlite3"
 )
 
 func Test_open(t *testing.T) {
@@ -14,20 +14,6 @@ func Test_open(t *testing.T) {
 	}
 	defer db.Close()
 	t.Log(db.Ping())
-	err = createTable(db)
+	err = createUserTable(db)
 	t.Log(err)
-}
-
-func createTable(db *sql.DB) error {
-	s := `CREATE TABLE login(uid TEXT PRIMARY KEY NOT NULL,lasttime INTEGER,address TEXT);`
-	stmt, err := db.Prepare(s)
-	if err != nil {
-		return err
-	}
-	ret, err := stmt.Exec()
-	if err != nil {
-		return err
-	}
-	log.Println(ret)
-	return nil
 }
