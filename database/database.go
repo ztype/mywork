@@ -1,6 +1,9 @@
-package db
+package database
 
-import "fmt"
+import (
+	"fmt"
+	_ "github.com/mattn/go-sqlite3"
+)
 
 var data = make(map[string]interface{}, 0)
 
@@ -21,6 +24,3 @@ func Delete(id string) {
 		delete(data, id)
 	}
 }
-
-
-
