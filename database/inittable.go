@@ -5,7 +5,7 @@ import "database/sql"
 const usertablesql = `CREATE TABLE user(uid TEXT PRIMARY KEY NOT NULL,
 nickname TEXT,
 password TEXT,
-type INTEGER ,
+utype INTEGER ,
 isonline integer ,
 headurl TEXT,
 regtime INTEGER );`

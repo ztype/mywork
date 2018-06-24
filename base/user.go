@@ -3,10 +3,11 @@ package base
 import "time"
 
 type User struct {
-	id            string
-	utype         int
-	nickname      string
-	password      string
+	Uid           string
+	Utype         int
+	Nickname      string
+	Password      string
+	Headurl       string
 	lastHeartBeat time.Time
 }
 
@@ -14,7 +15,7 @@ var hbGapOut = time.Duration(time.Second * 3)
 
 func NewUser(id string) *User {
 	u := new(User)
-	u.id = id
+	u.Uid = id
 	return u
 }
 
@@ -30,13 +31,13 @@ func (u *User) HeartBeat() {
 }
 
 func (u *User) Id() string {
-	return u.id
+	return u.Uid
 }
 
 func (u *User) NickName() string {
-	return u.nickname
+	return u.Nickname
 }
 
 func (u *User) Type() int {
-	return u.utype
+	return u.Utype
 }

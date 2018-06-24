@@ -68,7 +68,7 @@
             msg.msgid = guid();
             msg.name = name;
             msg.type = type;
-            msg.id = getCookie("uid");
+            msg.uid = getCookie("uid");
             msg.time = Date.now();
             msg.data = data;
             s = JSON.stringify(msg);

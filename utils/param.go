@@ -1,7 +1,7 @@
 package utils
 
 type Param struct {
-	Id   string
+	Uid  string
 	Type string
 	Time int
 	Data string

@@ -1,8 +1,10 @@
 package services
 
 import (
+	"fmt"
 	"log"
 	"mywork/base"
+	"mywork/database"
 	"mywork/utils"
 	"sync"
 	"time"
@@ -16,8 +18,9 @@ const (
 var hbCheckTime = time.Duration(time.Second * 3)
 
 type SessionManager struct {
-	users map[string]*base.User
-	lock  sync.Mutex
+	onlineusers map[string]*base.User
+	lock        sync.Mutex
+	db          *database.DB
 }
 
 type Session struct {
@@ -26,7 +29,12 @@ type Session struct {
 
 func NewManager() *SessionManager {
 	m := new(SessionManager)
-	m.users = make(map[string]*base.User, 0)
+	m.onlineusers = make(map[string]*base.User, 0)
+	db, err := database.NewDatabase()
+	if err != nil {
+		log.Fatal(err)
+	}
+	m.db = db
 	go m.check()
 	return m
 }
@@ -38,11 +46,11 @@ func (sm *SessionManager) Name() string {
 func (sm *SessionManager) Serve(p utils.Param) (interface{}, error) {
 	switch p.Type {
 	case heartbeat:
-		return sm.UserConnect(p.Id)
+		return sm.UserConnect(p.Uid)
 	case logout:
-		return sm.UserDisConnect(p.Id)
+		return sm.UserDisConnect(p.Uid)
 	}
-	return nil, nil
+	return nil, fmt.Errorf("[%s] not found in %s", p.Type, sm.Name())
 }
 
 func (sm *SessionManager) ObserveChannel() chan<- utils.Param {
@@ -57,10 +65,11 @@ func (sm *SessionManager) check() {
 }
 
 func (sm *SessionManager) checkUser() {
-	for id, user := range sm.users {
+	for _, user := range sm.onlineusers {
 		if !user.IsOnline() {
 			sm.lock.Lock()
-			delete(sm.users, id)
+			sm.UserDisConnect(user.Id())
+			delete(sm.onlineusers, user.Id())
 			sm.lock.Unlock()
 		}
 	}
@@ -69,36 +78,40 @@ func (sm *SessionManager) checkUser() {
 func (sm *SessionManager) UserConnect(uuid string) (interface{}, error) {
 	sm.lock.Lock()
 	defer sm.lock.Unlock()
-	u, ok := sm.users[uuid]
+	u, ok := sm.onlineusers[uuid]
 	if ok {
 		u.HeartBeat()
 		return "ok", nil
 	}
-	user := base.NewUser(uuid)
-	user.HeartBeat()
-	sm.users[uuid] = user
+	user, err := sm.NewUser(uuid)
+	if err != nil {
+		return nil, err
+	}
+	sm.onlineusers[uuid] = user
 	log.Println(uuid, "connected")
 	return "ok", nil
 }
 
-func (sm *SessionManager) UserDisConnect(uuid string) (interface{}, error) {
-	sm.lock.Lock()
-	defer sm.lock.Unlock()
-	if _, ok := sm.users[uuid]; ok {
-		delete(sm.users, uuid)
-		log.Println(uuid, "disconnected")
+func (sm *SessionManager) NewUser(uuid string) (*base.User, error) {
+	user := base.NewUser(uuid)
+	user.HeartBeat()
+	if err := sm.db.InsertUser(user); err != nil {
+		return nil, err
 	}
+	return user, nil
+}
+
+func (sm *SessionManager) UserDisConnect(uuid string) (interface{}, error) {
+	sm.db.UpdateUserOnline(uuid, false)
+	log.Println(uuid, "disconnected")
 	return "ok", nil
 }
 
-func (sm *SessionManager) GetUser(uuid string) *base.User {
-	if u, ok := sm.users[uuid]; ok && u.IsOnline() {
-		return u
-	}
-	return nil
+func (sm *SessionManager) GetUser(uuid string) (*base.User, error) {
+	return sm.db.GetUserById(uuid)
 }
 
 func (sm *SessionManager) UserCount() int {
 	sm.checkUser()
-	return len(sm.users)
+	return len(sm.onlineusers)
 }
