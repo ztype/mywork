@@ -83,9 +83,15 @@ func (sm *SessionManager) UserConnect(uuid string) (interface{}, error) {
 		u.HeartBeat()
 		return "ok", nil
 	}
-	user, err := sm.NewUser(uuid)
-	if err != nil {
+	user, err := sm.GetUser(uuid)
+	if err != database.UserNotFound && err != nil {
 		return nil, err
+	}
+	if err == database.UserNotFound {
+		user, err = sm.NewUser(uuid)
+		if err != nil {
+			return nil, err
+		}
 	}
 	sm.onlineusers[uuid] = user
 	log.Println(uuid, "connected")

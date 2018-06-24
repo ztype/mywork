@@ -16,6 +16,7 @@
         let ws = {};
         let heartbeattime = 1000 * 2;
         let times = 0;
+        let messages = [];
         let getCookie = function (name) {
             let strcookie = document.cookie;
             let arrcookie = strcookie.split("; ");//分割
@@ -88,6 +89,10 @@
         var wsonmessage = function (evt) {
             console.log("ws receive:" + evt.data);
             appendMsg(evt.data);
+            if (evt.data.toString().startsWith("ERROR:")){
+                ws.retry = false;
+                ws.close();
+            }
             times++;
             if (times > 13) {
                 ws.retry = false;

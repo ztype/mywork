@@ -2,6 +2,7 @@ package router
 
 import (
 	"fmt"
+	"log"
 	"mywork/services"
 	"mywork/utils"
 	"sync"
@@ -14,7 +15,7 @@ type Service interface {
 	Name() string
 	Serve(param utils.Param) (interface{}, error)
 	// if return value is not nil,all messages will notify to service
-	ObserveChannel()chan<-utils.Param
+	ObserveChannel() chan<- utils.Param
 }
 
 type Router struct {
@@ -50,7 +51,7 @@ func (r *Router) Observe(c chan<- utils.Param) {
 }
 
 func (r *Router) Stop(c chan<- utils.Param) {
-	for i := 0; i < len(r.chans); i ++ {
+	for i := 0; i < len(r.chans); i++ {
 		ch := r.chans[i]
 		if ch == c {
 			r.chans = append(r.chans[:i], r.chans[:i+1]...)
@@ -75,6 +76,9 @@ func (r *Router) Handle(msg *utils.Message) (interface{}, error) {
 		res := utils.Respond{}
 		res.Msgid = msg.Msgid
 		res.Data = ret
+		if err != nil {
+			log.Println(err)
+		}
 		return res, err
 	}
 	return nil, fmt.Errorf("service [%s] not found", msg.Name)
