@@ -46,7 +46,6 @@
 
         let wsonopen = function (evt) {
             console.log("ws open");
-            ws.send("Hello WebSockets!");
             ws.lastHeartbeatTime = Date.now();
             setTimeout("heartbeat();", heartbeattime);
         };
