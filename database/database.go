@@ -73,6 +73,8 @@ func (db *DB) UpdateUserOnline(id string, isonline bool) error {
 }
 
 func (db *DB) GetUserById(id string) (*base.User, error) {
+	glock.Lock()
+	glock.Unlock()
 	rows, err := db.db.Query(`SELECT 
 uid,
 IFNULL(nickname,""),

@@ -107,6 +107,14 @@ func (s *RoomService) getRoom(id string) *Room {
 	return nil
 }
 
+func (s *RoomService) AllRooms()[]string{
+	ret := make([]string,0)
+	for _,r := range s.Rooms{
+		ret = append(ret,r.ID().String())
+	}
+	return ret
+}
+
 func (s *RoomService) CreateRoom(p utils.Param) (interface{}, error) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
@@ -122,7 +130,10 @@ func (s *RoomService) CreateRoom(p utils.Param) (interface{}, error) {
 	if err := s.joinRoom(user, i.String()); err != nil {
 		return nil, err
 	}
-	return i, nil
+	msg := make(map[string]interface{})
+	msg["room_id"] = i
+	msg["now_room_count"] = len(s.AllRooms())
+	return msg, nil
 }
 
 func newroomid() roomid {
