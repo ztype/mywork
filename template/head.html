@@ -86,9 +86,8 @@
         };
 
         var wsonmessage = function (evt) {
-            console.log("ws receive:" + evt.data);
             appendMsg(evt.data);
-            if (evt.data.toString().startsWith("ERROR:")){
+            if (evt.data.toString().startsWith("ERROR:")) {
                 ws.retry = false;
                 ws.close();
             }
@@ -132,17 +131,45 @@
         let content = document.getElementById("content1");
         if (content) {
             msgcount++;
+            let scroll = false;
+            if (content.clientHeight + content.scrollTop === content.scrollHeight) {
+                scroll = true;
+            }
             let a = document.createElement("a");
-            a.textContent = msgcount +":"+ msg;
+            a.textContent = msgcount + ":" + msg;
             content.appendChild(a);
             let br = document.createElement("br");
             content.appendChild(br);
-            if (content.childElementCount/2 > 15) {
-                content.removeChild(content.firstChild);
-                content.removeChild(content.firstChild);
+            if (scroll) {
+                content.scrollTop = content.scrollHeight - content.clientHeight;
             }
+
+            /*if (content.childElementCount / 2 > 15) {
+                content.removeChild(content.firstChild);
+                content.removeChild(content.firstChild);
+            }*/
         }
     }
+</script>
+<style type="text/css">
+    .root{
+        width: 60vw;
+        margin-left:20vw;
+        margin-right: 20vw;
+    }
+    .eighty{
+        max-height: 80vh;
+        height: 80vh;
+    }
+    #content1 {
+        max-height: 60vh;
+        overflow: auto;
+        overflow-x: hidden;
+        top: 15vh;
+    }
+    #footer{
 
+    }
 
-</script> {{end}}
+</style>
+{{end}}
