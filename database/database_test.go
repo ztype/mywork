@@ -11,8 +11,8 @@ func Test_open(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	//err = db.createTableUser()
-	err = db.dropTableUser()
+	err = db.createTableUser()
+	//err = db.dropTableUser()
 	t.Log(err)
 	db.Close()
 }

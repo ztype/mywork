@@ -190,7 +190,7 @@ func (s *RoomService) leaveRoom(user *base.User, rid string) error {
 
 func (s *RoomService) GetUserRoom(uid string) roomid {
 	for _, r := range s.Rooms {
-
+		_ = r
 	}
 	return 0
 }

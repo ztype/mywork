@@ -104,11 +104,11 @@ func (sm *SessionManager) NewUser(uuid string) (*base.User, error) {
 	if err := sm.db.InsertUser(user); err != nil {
 		return nil, err
 	}
+	log.Println("new user", uuid)
 	return user, nil
 }
 
 func (sm *SessionManager) UserDisConnect(uuid string) (interface{}, error) {
-	sm.db.UpdateUserOnline(uuid, false)
 	log.Println(uuid, "disconnected")
 	return "ok", nil
 }

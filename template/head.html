@@ -17,7 +17,7 @@
         let heartbeattime = 1000 * 2;
         let times = 0;
         let messages = [];
-        let getCookie = function (name) {
+        var getCookie = function (name) {
             let strcookie = document.cookie;
             let arrcookie = strcookie.split("; ");//分割
             //遍历匹配
@@ -41,6 +41,14 @@
                 console.log("connection break");
             } else {
                 setTimeout("heartbeat();", heartbeattime);
+            }
+            {
+                let uid = getCookie("uid");
+                let userid = document.getElementById("user_id");
+                console.log("uid:"+ userid);
+                if (userid) {
+                    userid.textContent = uid;
+                }
             }
         };
 

@@ -1,7 +1,6 @@
 package database
 
 import (
-	"fmt"
 	"io/ioutil"
 	"log"
 
@@ -15,7 +14,7 @@ type DB struct {
 	db *gorm.DB
 }
 
-var UserNotFound = fmt.Errorf("user not found")
+var UserNotFound = gorm.ErrRecordNotFound
 
 func readToken() string {
 	token, err := ioutil.ReadFile("./db.conf")
@@ -24,7 +23,6 @@ func readToken() string {
 		return ""
 	}
 	t := string(token)
-	log.Println(t)
 	return t
 }
 
@@ -40,23 +38,16 @@ func (db *DB) Close() {
 }
 
 func (db *DB) createTableUser() error {
-	u := new(base.User)
-	return db.db.CreateTable(u).Error
+	if db.db.HasTable(new(base.User)) {
+		return nil
+	}
+	return db.db.CreateTable(new(base.User)).Error
 }
 
 func (db *DB) dropTableUser() error {
 	return db.db.DropTable(new(base.User)).Error
-	return nil
 }
 
-//func initDatabse(db *gorm.DB) error {
-//	info, _ := os.Lstat(dbPath)
-//	if info.Size() == 0 {
-//		return createUserTable(db)
-//	}
-//	return nil
-//}
-//
 func (db *DB) Init() error {
 	return nil
 }
@@ -73,35 +64,9 @@ func (db *DB) InsertUser(user *base.User) error {
 	return db.db.Create(user).Error
 }
 
-//func (db *DB) UpdateUserOnline(id string, isonline bool) error {
-//	glock.Lock()
-//	defer glock.Unlock()
-//	stmt, err := db.db.Prepare(`UPDATE user SET isonlien=? WHERE uid=?;`)
-//	if err != nil {
-//		return err
-//	}
-//	ret, err := stmt.Exec(isonline, id)
-//	_ = ret
-//	return err
-//}
-//
-//func (db *DB) GetUserById(id string) (*base.User, error) {
-//	glock.Lock()
-//	glock.Unlock()
-//	rows, err := db.db.Query(`SELECT
-//uid,
-//IFNULL(nickname,""),
-//IFNULL(utype,0),
-//IFNULL(headurl,"") FROM user WHERE uid=?;`, id)
-//	if err != nil {
-//		return nil, err
-//	}
-//	user := new(base.User)
-//	for rows.Next() {
-//		if err := rows.Scan(&user.Uid, &user.Nickname, &user.Utype, &user.Headurl); err != nil {
-//			return nil, err
-//		}
-//		return user, nil
-//	}
-//	return nil, UserNotFound
-//}
+func (db *DB) GetUserById(id string) (*base.User, error) {
+	u := new(base.User)
+	u.Uid = id
+	err := db.db.First(u).Error
+	return u, err
+}
