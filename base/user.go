@@ -1,9 +1,11 @@
 package base
 
-import "time"
+import (
+	"time"
+)
 
 type User struct {
-	Uid           string
+	Uid           string `gorm:"unique;not null;index:user_id"`
 	Utype         int
 	Nickname      string
 	Password      string

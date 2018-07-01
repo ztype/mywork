@@ -107,10 +107,10 @@ func (s *RoomService) getRoom(id string) *Room {
 	return nil
 }
 
-func (s *RoomService) AllRooms()[]string{
-	ret := make([]string,0)
-	for _,r := range s.Rooms{
-		ret = append(ret,r.ID().String())
+func (s *RoomService) AllRooms() []string {
+	ret := make([]string, 0)
+	for _, r := range s.Rooms {
+		ret = append(ret, r.ID().String())
 	}
 	return ret
 }
@@ -137,7 +137,7 @@ func (s *RoomService) CreateRoom(p utils.Param) (interface{}, error) {
 }
 
 func newroomid() roomid {
-	i := 0
+	i := 1
 	for i = 1; ; i++ {
 		found := false
 		for _, s := range idgen {
@@ -188,6 +188,13 @@ func (s *RoomService) leaveRoom(user *base.User, rid string) error {
 	return nil
 }
 
+func (s *RoomService) GetUserRoom(uid string) roomid {
+	for _, r := range s.Rooms {
+
+	}
+	return 0
+}
+
 //========= room area =============//
 func newRoom() *Room {
 	i := newroomid()
@@ -225,5 +232,14 @@ func (r *Room) UserOut(user *base.User) error {
 	if ok {
 		delete(r.Users, u.Id())
 	}
+	return nil
+}
+
+func (r *Room) HasUser(uid string) bool {
+	return r.GetUser(uid) != nil
+}
+
+func (r *Room) GetUser(uid string) *base.User {
+
 	return nil
 }
