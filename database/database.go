@@ -11,8 +11,6 @@ import (
 	"github.com/jinzhu/gorm"
 )
 
-const dbPath = `redten@mysql`
-
 type DB struct {
 	db *gorm.DB
 }
