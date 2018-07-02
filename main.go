@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"mywork/handler"
 	"net/http"
+	"log"
 )
 
 func main() {
+	log.SetFlags(log.Lshortfile|log.LstdFlags)
 	fmt.Println("application started.")
 	go handler.ListenWebsocket("/ws", ":8081")
 	http.HandleFunc("/", handler.DefaultHandle)
