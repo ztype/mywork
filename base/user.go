@@ -15,6 +15,10 @@ type User struct {
 
 var hbGapOut = time.Duration(time.Second * 3)
 
+func SetHeartbeatTime(d time.Duration) {
+	hbGapOut = d
+}
+
 func NewUser(id string) *User {
 	u := new(User)
 	u.Uid = id
@@ -22,10 +26,8 @@ func NewUser(id string) *User {
 }
 
 func (u *User) IsOnline() bool {
-	if time.Now().Sub(u.lastHeartBeat) > hbGapOut {
-		return false
-	}
-	return true
+	return time.Now().Sub(u.lastHeartBeat) < hbGapOut
+
 }
 
 func (u *User) HeartBeat() {

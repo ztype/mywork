@@ -2,12 +2,13 @@ package handler
 
 import (
 	"fmt"
-	"github.com/segmentio/ksuid"
 	"html/template"
 	"log"
 	"net/http"
 	"path/filepath"
 	"time"
+
+	"github.com/segmentio/ksuid"
 )
 
 const (
@@ -23,7 +24,6 @@ func newCookie(domain string) *http.Cookie {
 	cookie := new(http.Cookie)
 	cookie.Path = "/"
 	cookie.Domain = domain
-	//cookie.HttpOnly = true
 	cookie.Expires = time.Now().Add(time.Hour * 2)
 	cookie.Value = id
 	cookie.Name = FieldId

@@ -14,7 +14,7 @@
     }
     {
         let ws = {};
-        let heartbeattime = 1000 * 2;
+        let heartbeattime = 1000 * 5;
         let times = 0;
         let messages = [];
         var getCookie = function (name) {
@@ -45,7 +45,7 @@
             {
                 let uid = getCookie("uid");
                 let userid = document.getElementById("user_id");
-                console.log("uid:"+ userid);
+                console.log("uid:" + uid);
                 if (userid) {
                     userid.textContent = uid;
                 }
@@ -55,11 +55,15 @@
         let wsonopen = function (evt) {
             console.log("ws open");
             ws.lastHeartbeatTime = Date.now();
-            setTimeout("heartbeat();", heartbeattime);
+            heartbeat();
         };
 
         var wsonclose = function (evt) {
             console.log("ws closed:" + evt.data);
+            times++;
+            if (times > 13) {
+                ws.retry = false;
+            }
             if (evt.target.retry) {
                 console.log("reconnect");
                 connect();
@@ -79,7 +83,7 @@
             msg.uid = getCookie("uid");
             msg.time = Date.now();
             msg.data = data;
-            s = JSON.stringify(msg);
+            let s = JSON.stringify(msg);
             ws.send(s);
         };
 
@@ -94,14 +98,13 @@
         };
 
         var wsonmessage = function (evt) {
-            appendMsg(evt.data);
             if (evt.data.toString().startsWith("ERROR:")) {
                 ws.retry = false;
                 ws.close();
             }
-            times++;
-            if (times > 13) {
-                ws.retry = false;
+            let msg = JSON.parse(evt.data);
+            if (msg.Type === "heartbeat"){
+                appendMsg(msg.Data);
             }
         };
 
@@ -160,22 +163,25 @@
     }
 </script>
 <style type="text/css">
-    .root{
+    .root {
         width: 60vw;
-        margin-left:20vw;
+        margin-left: 20vw;
         margin-right: 20vw;
     }
-    .eighty{
+
+    .eighty {
         max-height: 80vh;
         height: 80vh;
     }
+
     #content1 {
         max-height: 60vh;
         overflow: auto;
         overflow-x: hidden;
         top: 15vh;
     }
-    #footer{
+
+    #footer {
 
     }
 

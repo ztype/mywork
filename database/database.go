@@ -59,6 +59,6 @@ func (db *DB) InsertUser(user *base.User) error {
 func (db *DB) GetUserById(id string) (*base.User, error) {
 	u := new(base.User)
 	u.Uid = id
-	err := db.db.First(u).Error
+	err := db.db.First(u, "uid = ?", id).Error
 	return u, err
 }

@@ -1,10 +1,11 @@
 package utils
 
 type Param struct {
-	Uid  string
-	Type string
-	Time int
-	Data string
+	Uid   string
+	Type  string
+	Time  int
+	Error string
+	Data  string
 }
 
 type Message struct {

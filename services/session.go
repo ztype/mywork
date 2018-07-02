@@ -15,7 +15,7 @@ const (
 	logout    = "logout"
 )
 
-var hbCheckTime = time.Duration(time.Second * 3)
+var hbCheckTime = time.Duration(time.Second * 8)
 
 type SessionManager struct {
 	onlineusers map[string]*base.User
@@ -58,6 +58,7 @@ func (sm *SessionManager) ObserveChannel() chan<- utils.Param {
 }
 
 func (sm *SessionManager) check() {
+	base.SetHeartbeatTime(hbCheckTime + time.Duration(time.Second*10))
 	for {
 		sm.checkUser()
 		time.Sleep(hbCheckTime)
@@ -65,37 +66,49 @@ func (sm *SessionManager) check() {
 }
 
 func (sm *SessionManager) checkUser() {
+	log.Println("users", sm.onlineusers)
 	for _, user := range sm.onlineusers {
 		if !user.IsOnline() {
-			sm.lock.Lock()
-			sm.UserDisConnect(user.Id())
-			delete(sm.onlineusers, user.Id())
-			sm.lock.Unlock()
+			sm.userDisConnect(user)
 		}
 	}
 }
 
 func (sm *SessionManager) UserConnect(uuid string) (interface{}, error) {
-	sm.lock.Lock()
-	defer sm.lock.Unlock()
 	u, ok := sm.onlineusers[uuid]
-	if ok {
-		u.HeartBeat()
-		return "ok", nil
-	}
-	user, err := sm.GetUser(uuid)
-	if err != database.UserNotFound && err != nil {
-		return nil, err
-	}
-	if err == database.UserNotFound {
-		user, err = sm.NewUser(uuid)
-		if err != nil {
+	var err error
+	if !ok {
+		u, err = sm.GetUser(uuid)
+		if err == database.UserNotFound {
+			u, err = sm.NewUser(uuid)
+			if err != nil {
+				return nil, err
+			}
+		} else if err != nil {
 			return nil, err
 		}
+		sm.userConnect(u)
 	}
-	sm.onlineusers[uuid] = user
-	log.Println(uuid, "connected")
-	return "ok", nil
+	u.HeartBeat()
+	return "connected", nil
+}
+
+func (sm *SessionManager) userConnect(user *base.User) {
+	if _, ok := sm.onlineusers[user.Id()]; !ok {
+		sm.lock.Lock()
+		defer sm.lock.Unlock()
+		sm.onlineusers[user.Id()] = user
+	}
+}
+
+func (sm *SessionManager) userDisConnect(user *base.User) {
+	sm.lock.Lock()
+	defer sm.lock.Unlock()
+	uuid := user.Id()
+	if _, ok := sm.onlineusers[uuid]; ok {
+		delete(sm.onlineusers, uuid)
+		log.Println("user", uuid, "delete")
+	}
 }
 
 func (sm *SessionManager) NewUser(uuid string) (*base.User, error) {
@@ -109,8 +122,7 @@ func (sm *SessionManager) NewUser(uuid string) (*base.User, error) {
 }
 
 func (sm *SessionManager) UserDisConnect(uuid string) (interface{}, error) {
-	log.Println(uuid, "disconnected")
-	return "ok", nil
+	return "you disconnected", nil
 }
 
 func (sm *SessionManager) GetUser(uuid string) (*base.User, error) {
@@ -118,6 +130,5 @@ func (sm *SessionManager) GetUser(uuid string) (*base.User, error) {
 }
 
 func (sm *SessionManager) UserCount() int {
-	sm.checkUser()
 	return len(sm.onlineusers)
 }
