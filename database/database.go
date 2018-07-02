@@ -53,14 +53,6 @@ func (db *DB) Init() error {
 }
 
 func (db *DB) InsertUser(user *base.User) error {
-	//	stmt, err := db.db.Exec(`INSERT INTO user
-	//(uid,nickname,isonline,regtime)
-	//VALUES
-	//(?,?,?,?) `)
-	//if err != nil {
-	//	return err
-	//}
-	//ret, err := stmt.Exec(user.Id(), user.NickName(), user.IsOnline(), time.Now().Unix())
 	return db.db.Create(user).Error
 }
 
