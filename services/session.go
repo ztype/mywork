@@ -21,6 +21,7 @@ type SessionManager struct {
 	onlineusers map[string]*base.User
 	lock        sync.Mutex
 	db          *database.DB
+	notify      chan utils.Param
 }
 
 type Session struct {
@@ -35,7 +36,9 @@ func NewManager() *SessionManager {
 		log.Fatal(err)
 	}
 	m.db = db
+	m.notify = make(chan utils.Param, 10)
 	go m.check()
+	go m.listen()
 	return m
 }
 
@@ -54,7 +57,19 @@ func (sm *SessionManager) Serve(p utils.Param) (interface{}, error) {
 }
 
 func (sm *SessionManager) ObserveChannel() chan<- utils.Param {
+	return sm.notify
 	return nil
+}
+
+func (sm *SessionManager) listen() {
+	for {
+		select {
+		case p := <-sm.notify:
+			if p.Type != "heartbeat" {
+				sm.heartbeat(p.Uid)
+			}
+		}
+	}
 }
 
 func (sm *SessionManager) check() {
@@ -66,7 +81,7 @@ func (sm *SessionManager) check() {
 }
 
 func (sm *SessionManager) checkUser() {
-	log.Println("users", sm.onlineusers)
+	//log.Println("users", sm.onlineusers)
 	for _, user := range sm.onlineusers {
 		if !user.IsOnline() {
 			sm.userDisConnect(user)
@@ -91,6 +106,12 @@ func (sm *SessionManager) UserConnect(uuid string) (interface{}, error) {
 	}
 	u.HeartBeat()
 	return "connected", nil
+}
+
+func (sm *SessionManager) heartbeat(uuid string) {
+	if u, ok := sm.onlineusers[uuid]; ok {
+		u.HeartBeat()
+	}
 }
 
 func (sm *SessionManager) userConnect(user *base.User) {

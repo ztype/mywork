@@ -39,13 +39,20 @@ func NewRouter() *Router {
 	return r
 }
 
+func (r *Router) Release() {
+	for _, c := range r.chans {
+		close(c)
+	}
+}
+
 func (r *Router) Regist(s Service) {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 	r.services[s.Name()] = s
+	r.observe(s.ObserveChannel())
 }
 
-func (r *Router) Observe(c chan<- utils.Param) {
+func (r *Router) observe(c chan<- utils.Param) {
 	if c != nil {
 		r.chans = append(r.chans, c)
 	}

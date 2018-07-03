@@ -16,13 +16,13 @@ const (
 	LeaveRoom  = "leave_room"
 )
 
-type roomid int
+type RoomId int
 
 var idgen = []int{}
 
 type Room struct {
 	lock  sync.Mutex
-	Id    roomid
+	Id    RoomId
 	Users map[string]*base.User
 }
 
@@ -32,7 +32,7 @@ type RoomService struct {
 	db    *database.DB
 }
 
-func (i roomid) String() string {
+func (i RoomId) String() string {
 	return fmt.Sprintf("%04d", i)
 }
 
@@ -124,7 +124,7 @@ func (s *RoomService) CreateRoom(p utils.Param) (interface{}, error) {
 	}
 	r := newRoom()
 	i := r.ID()
-	s.Rooms[roomid(i).String()] = r
+	s.Rooms[RoomId(i).String()] = r
 
 	//add user to room
 	if err := s.joinRoom(user, i.String()); err != nil {
@@ -136,7 +136,7 @@ func (s *RoomService) CreateRoom(p utils.Param) (interface{}, error) {
 	return msg, nil
 }
 
-func newroomid() roomid {
+func newroomid() RoomId {
 	i := 1
 	for i = 1; ; i++ {
 		found := false
@@ -148,10 +148,10 @@ func newroomid() roomid {
 		}
 		if !found {
 			idgen = append(idgen, i)
-			return roomid(i)
+			return RoomId(i)
 		}
 	}
-	return roomid(i)
+	return RoomId(i)
 }
 
 func (s *RoomService) LeaveRoom(p utils.Param) (interface{}, error) {
@@ -188,9 +188,11 @@ func (s *RoomService) leaveRoom(user *base.User, rid string) error {
 	return nil
 }
 
-func (s *RoomService) GetUserRoom(uid string) roomid {
+func (s *RoomService) GetUserRoom(uid string) RoomId {
 	for _, r := range s.Rooms {
-		_ = r
+		if r.HasUser(uid) {
+			return r.ID()
+		}
 	}
 	return 0
 }
@@ -199,12 +201,12 @@ func (s *RoomService) GetUserRoom(uid string) roomid {
 func newRoom() *Room {
 	i := newroomid()
 	r := new(Room)
-	r.Id = roomid(i)
+	r.Id = RoomId(i)
 	r.Users = make(map[string]*base.User, 0)
 	return r
 }
 
-func (r *Room) ID() roomid {
+func (r *Room) ID() RoomId {
 	return r.Id
 }
 
