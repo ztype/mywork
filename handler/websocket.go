@@ -39,11 +39,7 @@ func serveWs(ws *websocket.Conn) {
 			log.Println(err)
 			continue
 		}
-		ret, err := router.DefaultRouter.Handle(m)
-		if err != nil {
-			websocket.Message.Send(ws, fmt.Sprintf("ERROR:%v", err))
-			continue
-		}
+		ret := router.DefaultRouter.Handle(m)
 		j, err := json.Marshal(ret)
 		err = websocket.Message.Send(ws, fmt.Sprintf("%s", string(j)))
 		if err != nil {

@@ -79,25 +79,29 @@ func (r *Router) notify(msg utils.Param) {
 
 func response(msg *utils.Message, v interface{}, err error) utils.Message {
 	m := *msg
-	bs, err := json.Marshal(v)
-	if err != nil {
-		log.Println(err)
-	}
-	m.Time = int(time.Now().Unix())
+	// clean the data content for copy
+	m.Data = ""
 	m.Error = ""
+	if v != nil {
+		bs, e := json.Marshal(v)
+		if e != nil {
+			log.Println(e)
+		}
+		m.Data = string(bs)
+	}
 	if err != nil {
 		m.Error = err.Error()
 	}
-	m.Data = string(bs)
+	m.Time = int(time.Now().Unix())
 	return m
 }
 
-func (r *Router) Handle(msg *utils.Message) (interface{}, error) {
+func (r *Router) Handle(msg *utils.Message) interface{} {
 	r.notify(msg.Param)
 	if s, ok := r.services[msg.Name]; ok {
 		ret, err := s.Serve(msg.Param)
 		res := response(msg, ret, err)
-		return res, err
+		return res
 	}
-	return nil, fmt.Errorf("service [%s] not found", msg.Name)
+	return response(msg, nil, fmt.Errorf("service [%s] not found", msg.Name))
 }

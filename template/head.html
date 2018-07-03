@@ -103,8 +103,11 @@
                 ws.close();
             }
             let msg = JSON.parse(evt.data);
-            if (msg.Type === "heartbeat"){
+            if (msg.Type !== "heartbeat" && msg.Data !== ""){
                 appendMsg(msg.Data);
+            }
+            if (msg.Error){
+                appendMsg(msg.Error)
             }
         };
 
@@ -125,7 +128,7 @@
         let roomid = document.getElementById("room_id");
         let id = roomid.value;
         let obj = {};
-        obj.roomid = id;
+        obj.RoomId = id;
         let str = JSON.stringify(obj);
         sendMsg("room", "join_room", str);
     };
@@ -139,20 +142,20 @@
 <script type="text/javascript">
     var msgcount = 0;
     var appendMsg = function (msg) {
-        let content = document.getElementById("content1");
-        if (content) {
+        let c = document.getElementById("content1");
+        if (c) {
             msgcount++;
             let scroll = false;
-            if (content.clientHeight + content.scrollTop === content.scrollHeight) {
+            if (c.clientHeight + c.scrollTop === c.scrollHeight) {
                 scroll = true;
             }
             let a = document.createElement("a");
             a.textContent = msgcount + ":" + msg;
-            content.appendChild(a);
+            c.appendChild(a);
             let br = document.createElement("br");
-            content.appendChild(br);
+            c.appendChild(br);
             if (scroll) {
-                content.scrollTop = content.scrollHeight - content.clientHeight;
+                c.scrollTop = c.scrollHeight - c.clientHeight;
             }
 
             /*if (content.childElementCount / 2 > 15) {
