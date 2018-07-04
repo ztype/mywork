@@ -21,7 +21,7 @@ type SessionManager struct {
 	onlineusers map[string]*base.User
 	lock        sync.Mutex
 	db          *database.DB
-	notify      chan utils.Param
+	notify      chan *utils.Param
 }
 
 type Session struct {
@@ -36,7 +36,7 @@ func NewManager() *SessionManager {
 		log.Fatal(err)
 	}
 	m.db = db
-	m.notify = make(chan utils.Param, 10)
+	m.notify = make(chan *utils.Param, 10)
 	go m.check()
 	go m.listen()
 	return m
@@ -46,7 +46,7 @@ func (sm *SessionManager) Name() string {
 	return "connect"
 }
 
-func (sm *SessionManager) Serve(p utils.Param) (interface{}, error) {
+func (sm *SessionManager) Serve(p *utils.Param) (interface{}, error) {
 	switch p.Type {
 	case heartbeat:
 		return sm.UserConnect(p.Uid)
@@ -56,7 +56,7 @@ func (sm *SessionManager) Serve(p utils.Param) (interface{}, error) {
 	return nil, fmt.Errorf("[%s] not found in %s", p.Type, sm.Name())
 }
 
-func (sm *SessionManager) ObserveChannel() chan<- utils.Param {
+func (sm *SessionManager) ObserveChannel() chan *utils.Param {
 	return sm.notify
 	return nil
 }

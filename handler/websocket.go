@@ -25,26 +25,53 @@ func websocketHandle(ws *websocket.Conn) {
 }
 
 func serveWs(ws *websocket.Conn) {
-	i := 0
-	m := new(utils.Message)
+	go doRecv(ws)
+	doSend(ws)
+}
+
+func doSend(ws *websocket.Conn) {
+	hout := router.DefaultRouter.ChannelOut()
 	for {
-		i++
+		select {
+		case m, ok := <-hout:
+			if !ok {
+				log.Println("hout closed")
+				return
+			}
+			j, err := json.Marshal(m)
+			if err != nil {
+				log.Println(err)
+				break
+			}
+			err = websocket.Message.Send(ws, fmt.Sprintf("%s", string(j)))
+			if err != nil {
+				log.Println(ws.Request().RemoteAddr, err)
+				break
+			}
+		}
+	}
+}
+
+func doRecv(ws *websocket.Conn) error {
+	hin := router.DefaultRouter.ChannelIn()
+	defer close(hin)
+	for {
+		m := new(utils.Message)
 		var buf = make([]byte, 0)
 		err := websocket.Message.Receive(ws, &buf)
 		if err != nil {
 			log.Println(ws.Request().RemoteAddr, err)
-			break
+			return err
 		}
 		if err := json.Unmarshal(buf, m); err != nil {
 			log.Println(err)
 			continue
 		}
-		ret := router.DefaultRouter.Handle(m)
-		j, err := json.Marshal(ret)
-		err = websocket.Message.Send(ws, fmt.Sprintf("%s", string(j)))
-		if err != nil {
-			log.Println(ws.Request().RemoteAddr, err)
-			break
+		select {
+		case hin <- m:
+		default:
+			log.Println("hin blocked")
 		}
 	}
+	return nil
 }

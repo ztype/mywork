@@ -11,9 +11,10 @@ import (
 )
 
 type RoomService struct {
-	lock  sync.Mutex
-	Rooms map[string]*Room
-	db    *database.DB
+	lock    sync.Mutex
+	Rooms   map[string]*Room
+	db      *database.DB
+	channel chan *utils.Param
 }
 
 func NewRoomService() *RoomService {
@@ -24,6 +25,7 @@ func NewRoomService() *RoomService {
 		log.Fatal(err)
 	}
 	rs.db = db
+	rs.channel = make(chan *utils.Param, 2)
 	return rs
 }
 
@@ -31,7 +33,7 @@ func (s *RoomService) Name() string {
 	return "room"
 }
 
-func (s *RoomService) Serve(p utils.Param) (interface{}, error) {
+func (s *RoomService) Serve(p *utils.Param) (interface{}, error) {
 	switch p.Type {
 	case JoinRoom:
 		return s.JoinRoom(p)
@@ -41,8 +43,23 @@ func (s *RoomService) Serve(p utils.Param) (interface{}, error) {
 	return nil, fmt.Errorf("[%s] not found in %s", p.Type, s.Name())
 }
 
-func (s *RoomService) ObserveChannel() chan<- utils.Param {
+func (s *RoomService) ObserveChannel() chan *utils.Param {
+	return s.channel
 	return nil
+}
+
+func (s *RoomService) listen() {
+	for {
+		select {
+		case p, ok := <-s.channel:
+			if !ok {
+				log.Println(s.Name(), "chan be closed")
+				break
+			}
+			//todo
+			s.Serve(p)
+		}
+	}
 }
 
 type roomMsg struct {
@@ -57,7 +74,7 @@ func toRoomMsg(data string) (*roomMsg, error) {
 	return jm, nil
 }
 
-func (s *RoomService) JoinRoom(p utils.Param) (interface{}, error) {
+func (s *RoomService) JoinRoom(p *utils.Param) (interface{}, error) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 	uid := p.Uid
@@ -103,7 +120,7 @@ func (s *RoomService) AllRooms() []string {
 	return ret
 }
 
-func (s *RoomService) CreateRoom(p utils.Param) (interface{}, error) {
+func (s *RoomService) CreateRoom(p *utils.Param) (interface{}, error) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 	user, err := s.db.GetUserById(p.Uid)
@@ -166,3 +183,5 @@ func (s *RoomService) GetUserRoom(uid string) RoomId {
 	}
 	return 0
 }
+
+//func (s *RoomService)
