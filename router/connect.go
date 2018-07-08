@@ -1,53 +1,90 @@
 package router
 
 import (
-	"golang.org/x/net/websocket"
-	"github.com/segmentio/ksuid"
+	"fmt"
 	"log"
-	"sync"
+
+	"github.com/segmentio/ksuid"
+	"golang.org/x/net/websocket"
+	"bytes"
 )
+
+type OnMessage func([]byte)
+type OnClose func(id string)
+
+var SignalClose = []byte("\0")
 
 type Connect struct {
-	ws    *websocket.Conn
-	id    string
-	chin  chan []byte //channel to receive ws msg
-	chout chan []byte //channel to send ws msg
-}
-
-var (
-	connMap map[string]*Connect
-	clock sync.Mutex
-)
-
-func ServeConnect(c *Connect){
-	clock.Lock()
-	connMap[c.ID()] = c
-	clock.Unlock()
-	c.active()
+	ws      *websocket.Conn
+	id      string
+	chin    chan []byte //channel to receive ws msg
+	chout   chan []byte //channel to send ws msg
+	onclose []OnClose
 }
 
 func NewConnect(ws *websocket.Conn) *Connect {
-	return &Connect{
-		ws:    ws,
-		id:    ksuid.New().String(),
-		chin:  make(chan []byte, 0),
-		chout: make(chan []byte, 0),
+	c := &Connect{
+		ws:      ws,
+		id:      ksuid.New().String(),
+		chin:    make(chan []byte, 0),
+		chout:   make(chan []byte, 0),
+		onclose: nil,
 	}
+
+	return c
 }
 
 func (c *Connect) ID() string {
 	return c.id
 }
 
-func (c *Connect) Close(){
+func (c *Connect) Close() {
 	c.ws.Close()
 	close(c.chin)
 	close(c.chout) // fixme
 }
 
-func (c *Connect) active() {
-	go c.wsRecv()
-	c.wsSend()
+func (c *Connect) OnMessage(cb OnMessage) {
+	go c.ob(cb)
+}
+
+func (c *Connect) ob(cb OnMessage) {
+	for {
+		select {
+		case bs, ok := <-c.chin:
+			if !ok {
+				log.Println(c.ID(), "ob closed")
+				return
+			}
+			if cb != nil {
+				cb(bs)
+			}
+		}
+	}
+}
+
+func (c *Connect) OnClose(cb OnClose) {
+	c.onclose = append(c.onclose, cb)
+}
+
+func (c *Connect) Send(data []byte) error {
+	select {
+	case c.chout <- data:
+		return nil
+	default:
+		return fmt.Errorf("send failed %s %s", c.ID(), "is closed")
+	}
+}
+
+// active will block till connect close
+func (c *Connect) Active() {
+	go c.wsSend()
+	c.wsRecv() //that will block
+	for _, oc := range c.onclose {
+		if oc != nil {
+			oc(c.ID())
+		}
+	}
 }
 
 func (c *Connect) wsRecv() {
@@ -73,12 +110,16 @@ func (c *Connect) wsSend() {
 		case buf, ok := <-c.chout:
 			if !ok {
 				log.Println(c.id, "ws closed")
-				break
+				return
+			}
+			if bytes.Compare(buf, SignalClose) == 0 {
+				log.Println(c.ID(), "signal close")
+				return
 			}
 			err := websocket.Message.Send(c.ws, buf)
 			if err != nil {
 				log.Println(c.ws.RemoteAddr(), err)
-				break
+				return
 			}
 		}
 	}

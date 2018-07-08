@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"mywork/services"
 	"mywork/utils"
 	"sync"
 	"time"
@@ -24,24 +23,25 @@ type Service interface {
 type Router struct {
 	lock     sync.Mutex
 	services map[string]Service
-	chans    []chan *utils.Param
+	chans    map[string]chan *utils.Param
 	chanIn   chan *utils.Message //chan<- *utils.Message
 	chanOut  chan *utils.Message //<-chan *utils.Message
 }
 
 var DefaultRouter *Router
 
-func init() {
-	DefaultRouter = NewRouter()
-	DefaultRouter.Regist(services.NewManager())
-	DefaultRouter.Regist(services.NewRoomService())
-}
+//func init() {
+//	DefaultRouter = NewRouter()
+//	DefaultRouter.Regist(services.NewManager())
+//	DefaultRouter.Regist(services.NewRoomService())
+//}
 
 func NewRouter() *Router {
 	r := new(Router)
 	r.services = make(map[string]Service, 0)
 	r.chanIn = make(chan *utils.Message, 1)
 	r.chanOut = make(chan *utils.Message, 1)
+	r.chans = make(map[string]chan *utils.Param)
 	go r.handleIn()
 	return r
 }
@@ -63,8 +63,8 @@ func (r *Router) Regist(s Service) {
 func (r *Router) observe(s Service) {
 	c := s.ObserveChannel()
 	if c != nil {
-		r.chans = append(r.chans, c)
-		r.serve(c, s.Name())
+		r.chans[s.Name()] = c
+		go r.serve(c, s.Name())
 	}
 }
 
@@ -86,12 +86,9 @@ func (r *Router) serve(c <-chan *utils.Param, name string) {
 
 }
 
-func (r *Router) Stop(c chan<- *utils.Param) {
-	for i := 0; i < len(r.chans); i++ {
-		ch := r.chans[i]
-		if ch == c {
-			r.chans = append(r.chans[:i], r.chans[:i+1]...)
-		}
+func (r *Router) Stop(name string) {
+	if _, ok := r.chans[name]; ok {
+		delete(r.chans, name)
 	}
 }
 
@@ -163,4 +160,36 @@ func (r *Router) handleIn() {
 			r.sendMsg(res)
 		}
 	}
+}
+
+////////////////////////////////
+
+var (
+	connMap = make(map[string]*Connect, 0)
+	clock   sync.Mutex
+)
+
+func AddConnect(c *Connect) {
+	clock.Lock()
+	connMap[c.ID()] = c
+	clock.Unlock()
+
+	log.Println(c.ID(), "connect")
+
+	c.OnClose(onClose)
+	c.Active()
+}
+
+func Send(id string, data []byte) error {
+	if c, ok := connMap[id]; ok {
+		return c.Send(data)
+	}
+	return fmt.Errorf("connect %s not found")
+}
+
+func onClose(id string) {
+	clock.Lock()
+	delete(connMap, id)
+	clock.Unlock()
+	log.Println(id, "dis connected", len(connMap))
 }

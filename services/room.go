@@ -14,7 +14,10 @@ const (
 
 type RoomId int
 
-var idgen = []int{}
+var (
+	idgen = []RoomId{}
+	ilock = sync.Mutex{}
+)
 
 type Room struct {
 	lock  sync.Mutex
@@ -26,27 +29,45 @@ func (i RoomId) String() string {
 	return fmt.Sprintf("%d", i)
 }
 
-func newroomid() RoomId {
+func newRoomId() RoomId {
 	i := 1
 	for i = 1; ; i++ {
 		found := false
 		for _, s := range idgen {
-			if s == i {
+			if s == RoomId(i) {
 				found = true
 				break
 			}
 		}
 		if !found {
-			idgen = append(idgen, i)
+			ilock.Lock()
+			idgen = append(idgen, RoomId(i))
+			ilock.Unlock()
 			return RoomId(i)
 		}
 	}
 	return RoomId(i)
 }
 
+func recycleRoomId(id RoomId) {
+	index := -1
+	for i, s := range idgen {
+		if s == id {
+			index = i
+			break
+		}
+	}
+	if index != -1 {
+		ilock.Lock()
+		idgen = idgen[index : index+1]
+		ilock.Unlock()
+	}
+}
+
 //========= room area =============//
+
 func newRoom() *Room {
-	i := newroomid()
+	i := newRoomId()
 	r := new(Room)
 	r.Id = RoomId(i)
 	r.Users = make(map[string]*base.User, 0)
@@ -62,10 +83,10 @@ func (r *Room) UserIn(user *base.User) error {
 	if ul >= 4 {
 		return fmt.Errorf("room [%s] is full", r.Id.String())
 	}
-	if _, ok := r.Users[user.Id()]; ok {
+	if _, ok := r.Users[user.ID()]; ok {
 		return nil
 	}
-	r.Users[user.Id()] = user
+	r.Users[user.ID()] = user
 	return nil
 }
 
@@ -77,9 +98,9 @@ func (r *Room) UserOut(user *base.User) error {
 	if r.UserCount() == 0 {
 		return nil
 	}
-	u, ok := r.Users[user.Id()]
+	u, ok := r.Users[user.ID()]
 	if ok {
-		delete(r.Users, u.Id())
+		delete(r.Users, u.ID())
 	}
 	return nil
 }
@@ -95,4 +116,8 @@ func (r *Room) GetUser(uid string) *base.User {
 		}
 	}
 	return nil
+}
+
+func (r *Room) Close() {
+
 }

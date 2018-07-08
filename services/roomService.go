@@ -184,4 +184,10 @@ func (s *RoomService) GetUserRoom(uid string) RoomId {
 	return 0
 }
 
-//func (s *RoomService)
+func (s *RoomService) sendMsg(msg *utils.Param) {
+	select {
+	case s.channel <- msg:
+	default:
+		log.Println("room service msg not send")
+	}
+}

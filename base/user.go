@@ -34,7 +34,7 @@ func (u *User) HeartBeat() {
 	u.lastHeartBeat = time.Now()
 }
 
-func (u *User) Id() string {
+func (u *User) ID() string {
 	return u.Uid
 }
 
