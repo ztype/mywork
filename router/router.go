@@ -177,10 +177,17 @@ func AddConnect(c *Connect) {
 	log.Println(c.ID(), "connect")
 
 	c.OnClose(onClose)
+	if OnConnect != nil {
+		OnConnect(c)
+	}
 	c.Active()
 }
 
-func Send(id string, data []byte) error {
+var OnConnect = func(c *Connect){
+
+}
+
+func SendTo(id string, data []byte) error {
 	if c, ok := connMap[id]; ok {
 		return c.Send(data)
 	}

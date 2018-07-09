@@ -12,7 +12,7 @@ import (
 type OnMessage func([]byte)
 type OnClose func(id string)
 
-var SignalClose = []byte("\0")
+var SignalClose = []byte{0x00}
 
 type Connect struct {
 	ws      *websocket.Conn
