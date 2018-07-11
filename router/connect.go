@@ -9,10 +9,12 @@ import (
 	"bytes"
 )
 
-type OnMessage func([]byte)
+type OnMessage func(string,[]byte)
 type OnClose func(id string)
 
 var SignalClose = []byte{0x00}
+
+var ErrBlock = fmt.Errorf("chan blocked")
 
 type Connect struct {
 	ws      *websocket.Conn
@@ -57,7 +59,7 @@ func (c *Connect) ob(cb OnMessage) {
 				return
 			}
 			if cb != nil {
-				cb(bs)
+				cb(c.ID(),bs)
 			}
 		}
 	}
@@ -72,7 +74,7 @@ func (c *Connect) Send(data []byte) error {
 	case c.chout <- data:
 		return nil
 	default:
-		return fmt.Errorf("send failed %s %s", c.ID(), "is closed")
+		return ErrBlock
 	}
 }
 

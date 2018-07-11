@@ -8,13 +8,14 @@ import (
 	"mywork/database"
 	"mywork/utils"
 	"sync"
+	"mywork/router"
 )
 
 type RoomService struct {
 	lock    sync.Mutex
 	Rooms   map[string]*Room
 	db      *database.DB
-	channel chan *utils.Param
+	channel chan *router.Msg
 }
 
 func NewRoomService() *RoomService {
@@ -25,12 +26,36 @@ func NewRoomService() *RoomService {
 		log.Fatal(err)
 	}
 	rs.db = db
-	rs.channel = make(chan *utils.Param, 2)
+	rs.channel = make(chan *router.Msg, 2)
 	return rs
 }
 
 func (s *RoomService) Name() string {
 	return "room"
+}
+
+func (s *RoomService) Channel() chan *router.Msg {
+	return s.channel
+}
+
+func (s *RoomService) work() {
+	for {
+		select {
+		case m, ok := <-s.channel:
+			if !ok {
+				return
+			}
+			up := new(utils.Message)
+			err := json.Unmarshal(m.Data, up)
+			if err != nil {
+				log.Println(err)
+				continue
+			}
+			if up.Name == s.Name() {
+				s.Serve(&up.Param)
+			}
+		}
+	}
 }
 
 func (s *RoomService) Serve(p *utils.Param) (interface{}, error) {
@@ -41,11 +66,6 @@ func (s *RoomService) Serve(p *utils.Param) (interface{}, error) {
 		return s.CreateRoom(p)
 	}
 	return nil, fmt.Errorf("[%s] not found in %s", p.Type, s.Name())
-}
-
-func (s *RoomService) ObserveChannel() chan *utils.Param {
-	return s.channel
-	return nil
 }
 
 func (s *RoomService) listen() {
