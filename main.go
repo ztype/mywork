@@ -5,6 +5,8 @@ import (
 	"log"
 	"mywork/handler"
 	"net/http"
+	"mywork/services/room"
+	"mywork/router"
 )
 
 func main() {
@@ -12,6 +14,9 @@ func main() {
 	log.Println("application started.")
 
 	go handler.ListenWebsocket("/ws", ":8081")
+
+	s := room.NewRoomService()
+	router.Regist(s)
 
 	http.HandleFunc("/", handler.DefaultHandle)
 	http.HandleFunc("/favicon.ico", handler.FaviconHandle)

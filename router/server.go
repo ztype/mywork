@@ -15,7 +15,7 @@ type Msg struct {
 }
 
 var (
-	mapServer map[string]Server
+	mapServer = map[string]Server{}
 )
 
 func Regist(s Server) {

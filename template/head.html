@@ -102,6 +102,7 @@
                 ws.retry = false;
                 ws.close();
             }
+            console.log(evt.data);
             let msg = JSON.parse(evt.data);
             if (msg.Type !== "heartbeat" && msg.Data !== ""){
                 appendMsg(msg.Data);

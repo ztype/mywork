@@ -12,21 +12,24 @@ import (
 )
 
 type RoomService struct {
-	lock    sync.Mutex
-	Rooms   map[string]*Room
-	db      *database.DB
-	channel chan *router.Msg
+	lock     sync.Mutex
+	Rooms    map[RoomId]*Room
+	userConn map[string]string //map[uid]cid
+	db       *database.DB
+	channel  chan *router.Msg
 }
 
 func NewRoomService() *RoomService {
 	rs := new(RoomService)
-	rs.Rooms = make(map[string]*Room, 0)
+	rs.Rooms = make(map[RoomId]*Room, 0)
 	db, err := database.NewDatabase()
 	if err != nil {
 		log.Fatal(err)
 	}
 	rs.db = db
 	rs.channel = make(chan *router.Msg, 2)
+	rs.userConn = make(map[string]string,0)
+	go rs.work()
 	return rs
 }
 
@@ -45,45 +48,55 @@ func (s *RoomService) work() {
 			if !ok {
 				return
 			}
-			up := new(utils.Message)
-			err := json.Unmarshal(m.Data, up)
-			if err != nil {
-				log.Println(err)
-				continue
-			}
-			if up.Name == s.Name() {
-				s.Serve(&up.Param)
-			}
+			log.Println("room",string(m.Data))
+			s.handle(m)
 		}
 	}
 }
 
-func (s *RoomService) Serve(p *utils.Param) (interface{}, error) {
-	switch p.Type {
-	case JoinRoom:
-		return s.JoinRoom(p)
-	case CreateRoom:
-		return s.CreateRoom(p)
+func (s *RoomService) send(uid string, m *utils.Message, v interface{}) {
+	if cid, ok := s.userConn[uid]; ok {
+		r := utils.RespondFromMsg(m)
+		r.Data = v
+		bs, err := json.Marshal(r)
+		if err != nil {
+			m.Error = err.Error()
+		}
+		router.SendTo(cid, bs)
 	}
-	return nil, fmt.Errorf("[%s] not found in %s", p.Type, s.Name())
 }
 
-func (s *RoomService) listen() {
-	for {
-		select {
-		case p, ok := <-s.channel:
-			if !ok {
-				log.Println(s.Name(), "chan be closed")
-				break
-			}
-			//todo
-			s.Serve(p)
+func (s *RoomService) updateConn(uid, cid string) {
+	s.userConn[uid] = cid
+}
+
+func (s *RoomService) handle(m *router.Msg) {
+	cid := m.Cid
+	data := m.Data
+	um := new(utils.Message)
+	if err := json.Unmarshal(data, um); err != nil {
+		log.Println(err)
+		return
+	}
+	uid := um.Uid
+	s.updateConn(uid, cid)
+	s.serve(um)
+}
+
+func (s *RoomService) serve(m *utils.Message) {
+	switch m.Type {
+	case "hearbeat":
+		u := s.GetUser(m.Uid)
+		if u != nil {
+			u.HeartBeat()
+			s.send(m.Uid, m, "ok")
 		}
+		s.send(m.Uid, m, "need login")
 	}
 }
 
 type roomMsg struct {
-	RoomId string `json:"RoomId"`
+	RoomId RoomId `json:"RoomId"`
 }
 
 func toRoomMsg(data string) (*roomMsg, error) {
@@ -117,7 +130,7 @@ func (s *RoomService) JoinRoom(p *utils.Param) (interface{}, error) {
 	return "success", nil
 }
 
-func (s *RoomService) joinRoom(user *base.User, id string) error {
+func (s *RoomService) joinRoom(user *base.User, id RoomId) error {
 	//log.Println(s.Rooms)
 	if r, ok := s.Rooms[id]; ok {
 		return r.UserIn(user)
@@ -125,7 +138,7 @@ func (s *RoomService) joinRoom(user *base.User, id string) error {
 	return fmt.Errorf("room [%s] not found", id)
 }
 
-func (s *RoomService) getRoom(id string) *Room {
+func (s *RoomService) getRoom(id RoomId) *Room {
 	if r, ok := s.Rooms[id]; ok {
 		return r
 	}
@@ -149,10 +162,10 @@ func (s *RoomService) CreateRoom(p *utils.Param) (interface{}, error) {
 	}
 	r := newRoom()
 	i := r.ID()
-	s.Rooms[RoomId(i).String()] = r
+	s.Rooms[RoomId(i)] = r
 
 	//add user to room
-	if err := s.joinRoom(user, i.String()); err != nil {
+	if err := s.joinRoom(user, i); err != nil {
 		return nil, err
 	}
 	msg := make(map[string]interface{})
@@ -179,7 +192,7 @@ func (s *RoomService) LeaveRoom(p utils.Param) (interface{}, error) {
 	return "ok", nil
 }
 
-func (s *RoomService) leaveRoom(user *base.User, rid string) error {
+func (s *RoomService) leaveRoom(user *base.User, rid RoomId) error {
 	r := s.getRoom(rid)
 	if r == nil {
 		return fmt.Errorf("room [%s] not found", rid)
@@ -189,7 +202,7 @@ func (s *RoomService) leaveRoom(user *base.User, rid string) error {
 	}
 	if r.UserCount() == 0 {
 		s.lock.Lock()
-		delete(s.Rooms, r.Id.String())
+		delete(s.Rooms, r.Id)
 		s.lock.Unlock()
 	}
 	return nil
@@ -201,13 +214,15 @@ func (s *RoomService) GetUserRoom(uid string) RoomId {
 			return r.ID()
 		}
 	}
-	return 0
+	return -1
 }
 
-func (s *RoomService) sendMsg(msg *utils.Param) {
-	select {
-	case s.channel <- msg:
-	default:
-		log.Println("room service msg not send")
+func (s *RoomService) GetUser(uid string) *base.User {
+	rid := s.GetUserRoom(uid)
+	if rid != -1 {
+		if r := s.getRoom(rid); r != nil {
+			return r.GetUser(uid)
+		}
 	}
+	return nil
 }
