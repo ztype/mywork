@@ -15,9 +15,6 @@ func main() {
 
 	go handler.ListenWebsocket("/ws", ":8081")
 
-	s := room.NewRoomService()
-	router.Regist(s)
-
 	http.HandleFunc("/", handler.DefaultHandle)
 	http.HandleFunc("/favicon.ico", handler.FaviconHandle)
 	err := http.ListenAndServe("", nil)

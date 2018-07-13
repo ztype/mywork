@@ -14,22 +14,20 @@ import (
 type RoomService struct {
 	lock     sync.Mutex
 	Rooms    map[RoomId]*Room
-	userConn map[string]string //map[uid]cid
 	db       *database.DB
-	channel  chan *router.Msg
 }
+
+const hallRoom = 0
 
 func NewRoomService() *RoomService {
 	rs := new(RoomService)
 	rs.Rooms = make(map[RoomId]*Room, 0)
+	rs.Rooms[hallRoom] = newRoom()
 	db, err := database.NewDatabase()
 	if err != nil {
 		log.Fatal(err)
 	}
 	rs.db = db
-	rs.channel = make(chan *router.Msg, 2)
-	rs.userConn = make(map[string]string,0)
-	go rs.work()
 	return rs
 }
 
@@ -37,62 +35,9 @@ func (s *RoomService) Name() string {
 	return "room"
 }
 
-func (s *RoomService) Channel() chan *router.Msg {
-	return s.channel
-}
+func (s *RoomService)AddUser(u *base.User){
+	s.Rooms[hallRoom].UserIn(u)
 
-func (s *RoomService) work() {
-	for {
-		select {
-		case m, ok := <-s.channel:
-			if !ok {
-				return
-			}
-			log.Println("room",string(m.Data))
-			s.handle(m)
-		}
-	}
-}
-
-func (s *RoomService) send(uid string, m *utils.Message, v interface{}) {
-	if cid, ok := s.userConn[uid]; ok {
-		r := utils.RespondFromMsg(m)
-		r.Data = v
-		bs, err := json.Marshal(r)
-		if err != nil {
-			m.Error = err.Error()
-		}
-		router.SendTo(cid, bs)
-	}
-}
-
-func (s *RoomService) updateConn(uid, cid string) {
-	s.userConn[uid] = cid
-}
-
-func (s *RoomService) handle(m *router.Msg) {
-	cid := m.Cid
-	data := m.Data
-	um := new(utils.Message)
-	if err := json.Unmarshal(data, um); err != nil {
-		log.Println(err)
-		return
-	}
-	uid := um.Uid
-	s.updateConn(uid, cid)
-	s.serve(um)
-}
-
-func (s *RoomService) serve(m *utils.Message) {
-	switch m.Type {
-	case "hearbeat":
-		u := s.GetUser(m.Uid)
-		if u != nil {
-			u.HeartBeat()
-			s.send(m.Uid, m, "ok")
-		}
-		s.send(m.Uid, m, "need login")
-	}
 }
 
 type roomMsg struct {

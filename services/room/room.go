@@ -12,59 +12,12 @@ const (
 	LeaveRoom  = "leave_room"
 )
 
-type RoomId int
-
-var (
-	idgen = []RoomId{}
-	ilock = sync.Mutex{}
-)
 
 type Room struct {
 	lock  sync.Mutex
 	Id    RoomId
 	Users map[string]*base.User
 }
-
-func (i RoomId) String() string {
-	return fmt.Sprintf("%d", i)
-}
-
-func newRoomId() RoomId {
-	i := 1
-	for i = 1; ; i++ {
-		found := false
-		for _, s := range idgen {
-			if s == RoomId(i) {
-				found = true
-				break
-			}
-		}
-		if !found {
-			ilock.Lock()
-			idgen = append(idgen, RoomId(i))
-			ilock.Unlock()
-			return RoomId(i)
-		}
-	}
-	return RoomId(i)
-}
-
-func recycleRoomId(id RoomId) {
-	index := -1
-	for i, s := range idgen {
-		if s == id {
-			index = i
-			break
-		}
-	}
-	if index != -1 {
-		ilock.Lock()
-		idgen = idgen[index : index+1]
-		ilock.Unlock()
-	}
-}
-
-//========= room area =============//
 
 func newRoom() *Room {
 	i := newRoomId()
@@ -119,5 +72,5 @@ func (r *Room) GetUser(uid string) *base.User {
 }
 
 func (r *Room) Close() {
-
+	recycleRoomId(r.Id)
 }

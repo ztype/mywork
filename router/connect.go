@@ -21,7 +21,7 @@ type Connect struct {
 	id      string
 	chin    chan []byte //channel to receive ws msg
 	chout   chan []byte //channel to send ws msg
-	onclose []OnClose
+	onclose OnClose
 }
 
 func NewConnect(ws *websocket.Conn) *Connect {
@@ -66,7 +66,7 @@ func (c *Connect) ob(cb OnMessage) {
 }
 
 func (c *Connect) OnClose(cb OnClose) {
-	c.onclose = append(c.onclose, cb)
+	c.onclose = cb
 }
 
 func (c *Connect) Send(data []byte) error {
@@ -78,14 +78,12 @@ func (c *Connect) Send(data []byte) error {
 	}
 }
 
-// active will block till connect close
+// Active will block till connect close
 func (c *Connect) Active() {
 	go c.wsSend()
 	c.wsRecv() //that will block
-	for _, oc := range c.onclose {
-		if oc != nil {
-			oc(c.ID())
-		}
+	if c.onclose != nil {
+		c.onclose(c.id)
 	}
 }
 

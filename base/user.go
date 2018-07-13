@@ -2,6 +2,8 @@ package base
 
 import (
 	"time"
+	"mywork/router"
+	"log"
 )
 
 type User struct {
@@ -11,6 +13,7 @@ type User struct {
 	Password      string
 	Headurl       string
 	lastHeartBeat time.Time
+	conn *router.Connect
 }
 
 var hbGapOut = time.Duration(time.Second * 3)
@@ -19,15 +22,15 @@ func SetHeartbeatTime(d time.Duration) {
 	hbGapOut = d
 }
 
-func NewUser(id string) *User {
+func NewUser(id string,conn *router.Connect) *User {
 	u := new(User)
 	u.Uid = id
+	u.conn = conn
 	return u
 }
 
 func (u *User) IsOnline() bool {
 	return time.Now().Sub(u.lastHeartBeat) < hbGapOut
-
 }
 
 func (u *User) HeartBeat() {
@@ -44,4 +47,13 @@ func (u *User) NickName() string {
 
 func (u *User) Type() int {
 	return u.Utype
+}
+
+func (u *User) Send(data []byte){
+	if u.conn != nil {
+		err := u.conn.Send(data)
+		if err != nil {
+			log.Println("user",err)
+		}
+	}
 }
